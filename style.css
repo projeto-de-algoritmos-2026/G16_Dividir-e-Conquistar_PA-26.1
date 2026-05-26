@@ -1,0 +1,230 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0a0e14;
+  --radar-bg: #0d1520;
+  --accent: #00e676;
+  --accent-dim: #00a152;
+  --danger: #ff1744;
+  --corte: #64b5f6;
+  --panel: #111820;
+  --panel-border: #1e2d3d;
+  --text: #e8eef4;
+  --text-muted: #7a8fa3;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  height: 100vh;
+}
+
+.radar-section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--radar-bg);
+  border-right: 1px solid var(--panel-border);
+}
+
+.radar-header {
+  padding: 1rem 1.25rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.radar-header h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+#radar {
+  flex: 1;
+  width: 100%;
+  display: block;
+}
+
+.panel {
+  background: var(--panel);
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-y: auto;
+}
+
+.panel h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 0.75rem;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+#qtd-aviões {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+#qtd-valor {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 230, 118, 0.35);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.dashboard h3 {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.metricas {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.metrica {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 0.15rem 0.5rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border-left: 3px solid var(--panel-border);
+}
+
+.metrica-bruta {
+  border-left-color: #ff9800;
+}
+
+.metrica-dc {
+  border-left-color: var(--accent);
+}
+
+.metrica dt {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.complexidade {
+  font-family: Georgia, "Cambria Math", serif;
+  font-style: italic;
+}
+
+.metrica dd:first-of-type {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.metrica .unidade {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  align-self: end;
+}
+
+.legenda {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.dot-corte {
+  background: var(--corte);
+  box-shadow: 0 0 6px var(--corte);
+}
+
+.dot-perigo {
+  background: var(--danger);
+  box-shadow: 0 0 6px rgba(255, 23, 68, 0.6);
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  .radar-section {
+    border-right: none;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .panel {
+    max-height: 42vh;
+  }
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radar ATS — Par de Pontos Mais Próximos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <section class="radar-section">
+      <header class="radar-header">
+        <h1>Radar ATS</h1>
+        <p class="subtitle">Simulador de distância mínima — Dividir e Conquistar</p>
+      </header>
+      <canvas id="radar" aria-label="Plano cartesiano do radar aéreo"></canvas>
+    </section>
+
+    <aside class="panel" id="painel">
+      <h2>Painel de Controle</h2>
+
+      <label class="control-group" for="qtd-aviões">
+        <span class="label-text">Aeronaves no espaço aéreo</span>
+        <input type="range" id="qtd-aviões" min="100" max="50000" value="100" step="100">
+        <output id="qtd-valor" for="qtd-aviões">100</output>
+      </label>
+
+      <button type="button" id="btn-analise" class="btn-primary">
+        Rodar Análise de Risco
+      </button>
+
+      <section class="dashboard" aria-live="polite">
+        <h3>Resultados</h3>
+        <dl class="metricas">
+          <div class="metrica">
+            <dt>Distância mínima</dt>
+            <dd id="dist-min">—</dd>
+            <dd class="unidade">px</dd>
+          </div>
+          <div class="metrica metrica-bruta">
+            <dt>Força Bruta <span class="complexidade">O(n²)</span></dt>
+            <dd id="tempo-bruta">—</dd>
+            <dd class="unidade">ms</dd>
+          </div>
+          <div class="metrica metrica-dc">
+            <dt>Dividir e Conquistar <span class="complexidade">O(n log n)</span></dt>
+            <dd id="tempo-dc">—</dd>
+            <dd class="unidade">ms</dd>
+          </div>
+        </dl>
+      </section>
+
+      <p class="legenda">
+        <span class="dot dot-corte"></span> Linha de corte (1ª divisão)
+        <span class="dot dot-perigo"></span> Par em risco
+      </p>
+    </aside>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
