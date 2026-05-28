@@ -1,11 +1,15 @@
-/**
- * Etapa 3 — Força Bruta O(n²): distância, tempo e linha vermelha.
- */
 
 const MARGEM = 12;
 const RAIO_PONTO = 1.5;
 
-const estado = { pontos: [], largura: 0, altura: 0, parDestaque: null };
+const estado = {
+  pontos: [],
+  largura: 0,
+  altura: 0,
+  linhaCorteX: null,
+  parDestaque: null,
+};
+
 const canvas = document.getElementById("radar");
 const ctx = canvas.getContext("2d", { alpha: false });
 const slider = document.getElementById("qtd-aviões");
@@ -13,11 +17,16 @@ const saidaQtd = document.getElementById("qtd-valor");
 const btnAnalise = document.getElementById("btn-analise");
 const elDistMin = document.getElementById("dist-min");
 const elTempoBruta = document.getElementById("tempo-bruta");
+const elTempoDc = document.getElementById("tempo-dc");
 
 function distanciaQuadrado(a, b) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return dx * dx + dy * dy;
+}
+
+function distancia(a, b) {
+  return Math.sqrt(distanciaQuadrado(a, b));
 }
 
 function redimensionarCanvas() {
@@ -56,6 +65,19 @@ function desenharGrade() {
   ctx.stroke();
 }
 
+function desenharLinhaCorte(x) {
+  if (x == null) return;
+  ctx.save();
+  ctx.strokeStyle = "rgba(100, 181, 246, 0.9)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, estado.altura);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function desenharAeronaves(pontos) {
   ctx.fillStyle = "#4dd0a8";
   for (const p of pontos) {
@@ -81,6 +103,7 @@ function desenharParPerigo(p1, p2) {
 function desenharCena() {
   desenharGrade();
   desenharAeronaves(estado.pontos);
+  desenharLinhaCorte(estado.linhaCorteX);
   if (estado.parDestaque) {
     desenharParPerigo(estado.parDestaque[0], estado.parDestaque[1]);
   }
@@ -90,13 +113,12 @@ function atualizarPontos() {
   const qtd = Number(slider.value);
   saidaQtd.textContent = qtd.toLocaleString("pt-BR");
   estado.pontos = gerarPontos(qtd);
+  estado.linhaCorteX = null;
   estado.parDestaque = null;
-  elDistMin.textContent = "—";
-  elTempoBruta.textContent = "—";
+  elDistMin.textContent = elTempoBruta.textContent = elTempoDc.textContent = "—";
   desenharCena();
 }
 
-/** Força Bruta — O(n²) */
 function forcaBruta(pontos) {
   let minDistSq = Infinity;
   let p1 = null;
@@ -114,18 +136,83 @@ function forcaBruta(pontos) {
   return { distancia: Math.sqrt(minDistSq), p1, p2 };
 }
 
-function rodarAnalise() {
+function menorPar(a, b) {
+  if (!a || a.distancia === Infinity) return b;
+  if (!b || b.distancia === Infinity) return a;
+  return a.distancia <= b.distancia ? a : b;
+}
+
+function faixaCentral(pontosY, delta, melhor) {
+  let m = melhor;
+  for (let i = 0; i < pontosY.length; i++) {
+    for (let j = i + 1; j < pontosY.length; j++) {
+      if (pontosY[j].y - pontosY[i].y >= delta) break;
+      const d = distancia(pontosY[i], pontosY[j]);
+      if (d < m.distancia) m = { distancia: d, p1: pontosY[i], p2: pontosY[j] };
+    }
+  }
+  return m;
+}
+
+function dividirConquistarRec(pontosX, pontosY) {
+  const n = pontosX.length;
+  if (n <= 3) return forcaBruta(pontosX);
+
+  const meio = Math.floor(n / 2);
+  const pMedio = pontosX[meio];
+  const esquerdaX = pontosX.slice(0, meio);
+  const direitaX = pontosX.slice(meio);
+  const setEsq = new Set(esquerdaX);
+  const esqY = [];
+  const dirY = [];
+  for (const p of pontosY) {
+    if (setEsq.has(p)) esqY.push(p);
+    else dirY.push(p);
+  }
+
+  let melhor = menorPar(
+    dividirConquistarRec(esquerdaX, esqY),
+    dividirConquistarRec(direitaX, dirY)
+  );
+  const delta = melhor.distancia;
+  const faixa = pontosY.filter((p) => Math.abs(p.x - pMedio.x) < delta);
+  return faixaCentral(faixa, delta, melhor);
+}
+
+function dividirConquistar(pontos) {
+  const pontosX = [...pontos].sort((a, b) => a.x - b.x);
+  const pontosY = [...pontos].sort((a, b) => a.y - b.y);
+  const linhaCorteX = pontosX[Math.floor(pontosX.length / 2)].x;
+  return { ...dividirConquistarRec(pontosX, pontosY), linhaCorteX };
+}
+
+async function rodarAnalise() {
   if (estado.pontos.length < 2) return;
   btnAnalise.disabled = true;
-
-  const inicio = performance.now();
-  const resultado = forcaBruta(estado.pontos);
-  const tempo = performance.now() - inicio;
-
-  estado.parDestaque = [resultado.p1, resultado.p2];
-  elDistMin.textContent = resultado.distancia.toFixed(2);
-  elTempoBruta.textContent = tempo.toFixed(2);
+  estado.linhaCorteX = null;
+  estado.parDestaque = null;
+  elDistMin.textContent = elTempoBruta.textContent = elTempoDc.textContent = "—";
   desenharCena();
+
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const t0 = performance.now();
+  const resBruta = forcaBruta(estado.pontos);
+  elTempoBruta.textContent = (performance.now() - t0).toFixed(2);
+  estado.parDestaque = [resBruta.p1, resBruta.p2];
+  elDistMin.textContent = resBruta.distancia.toFixed(2);
+  desenharCena();
+
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const t1 = performance.now();
+  const resDc = dividirConquistar(estado.pontos);
+  elTempoDc.textContent = (performance.now() - t1).toFixed(2);
+  estado.linhaCorteX = resDc.linhaCorteX;
+  estado.parDestaque = [resDc.p1, resDc.p2];
+  elDistMin.textContent = resDc.distancia.toFixed(2);
+  desenharCena();
+
   btnAnalise.disabled = false;
 }
 
