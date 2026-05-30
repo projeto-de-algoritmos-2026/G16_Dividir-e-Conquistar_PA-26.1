@@ -94,7 +94,7 @@
             <span class="passo-num">3</span>
             <div>
               <strong>Dividir e Conquistar <em>O(n log n)</em></strong>
-              <p>1) Corta · 2) Resolve esquerda · 3) Resolve direita · 4) Faixa roxa na fronteira.</p>
+              <p>Divide recursivamente · combina na faixa roxa (≤ 7 vizinhos em y).</p>
             </div>
           </li>
           <li class="passo" data-passo="done">
@@ -143,8 +143,8 @@
       <section class="panel-block explicacao">
         <h2>Como funciona o D&amp;C</h2>
         <p class="explicacao-texto">
-          Ordena por <code>x</code>, corta ao meio (linha azul), resolve cada metade e revisita só a
-          <strong>faixa estreita</strong> central — sem comparar todos os pares.
+          Ordena por <code>x</code>, corta ao meio (linha azul), resolve cada metade <strong>recursivamente</strong> e revisita só a
+          faixa central (δ) — cada ponto compara com no máximo <strong>7 vizinhos</strong> em y.
         </p>
       </section>
     </aside>

@@ -1,3 +1,7 @@
+/**
+ * Radar ATS — Par de Pontos Mais Próximos
+ * Proximidade instantânea + trajetórias ilustrativas + zoom
+ */
 
 const CONFIG = {
   MARGEM: 24,
@@ -482,7 +486,11 @@ function desenharFaixaCentral(corteX) {
   ctx.textAlign = "center";
   ctx.fillText("FAIXA CENTRAL — cruzar fronteira", corteX, 56 / camera.scale);
   ctx.font = `${10 / camera.scale}px system-ui`;
-  ctx.fillText(`largura 2δ ≈ ${(larguraFaixa).toFixed(0)} px`, corteX, 72 / camera.scale);
+  ctx.fillText(
+    `até ${MAX_VIZINHOS_FAIXA} vizinhos em y · 2δ ≈ ${larguraFaixa.toFixed(0)} px`,
+    corteX,
+    72 / camera.scale
+  );
 }
 
 function desenharLinhaCorte(x) {
@@ -621,26 +629,58 @@ function limparResultados() {
   estado.dcPasso = null;
 }
 
-function prepararDadosDcVisual(pontos) {
+function particionarListasY(pontosY, idsEsquerda) {
+  const esqY = [];
+  const dirY = [];
+  for (let i = 0; i < pontosY.length; i++) {
+    const p = pontosY[i];
+    if (idsEsquerda.has(p.id)) esqY.push(p);
+    else dirY.push(p);
+  }
+  return { esqY, dirY };
+}
+
+/** Dados do 1º merge — mesma lógica de dividirConquistarRec no nível raiz. */
+function dadosPrimeiroNivelDc(pontos) {
   const pontosX = [...pontos].sort(
     (a, b) => posAlgoritmo(a).x - posAlgoritmo(b).x
   );
+  const pontosY = [...pontos].sort(
+    (a, b) => posAlgoritmo(a).y - posAlgoritmo(b).y
+  );
   const meio = Math.floor(pontosX.length / 2);
-  const cutX = posAlgoritmo(pontosX[meio]).x;
-  const esquerda = pontosX.slice(0, meio);
-  const direita = pontosX.slice(meio);
-  const resEsq =
-    esquerda.length >= 2 ? forcaBruta(esquerda) : { distancia: Infinity };
-  const resDir =
-    direita.length >= 2 ? forcaBruta(direita) : { distancia: Infinity };
-  const melhor = menorPar(resEsq, resDir);
-  const delta =
-    melhor.distancia === Infinity ? 40 : melhor.distancia;
-  return { cutX, delta, qtdEsq: esquerda.length, qtdDir: direita.length };
+  const pm = posAlgoritmo(pontosX[meio]);
+  const esquerdaX = pontosX.slice(0, meio);
+  const direitaX = pontosX.slice(meio);
+
+  const idsEsq = new Set();
+  for (let i = 0; i < meio; i++) idsEsq.add(esquerdaX[i].id);
+  const { esqY, dirY } = particionarListasY(pontosY, idsEsq);
+
+  const resEsq = dividirConquistarRec(esquerdaX, esqY);
+  const resDir = dividirConquistarRec(direitaX, dirY);
+  const melhorSub = menorPar(resEsq, resDir);
+  const delta = melhorSub.distancia;
+  const faixa = pontosY.filter(
+    (p) => Math.abs(posAlgoritmo(p).x - pm.x) < delta
+  );
+
+  return {
+    cutX: pm.x,
+    delta,
+    qtdEsq: esquerdaX.length,
+    qtdDir: direitaX.length,
+    qtdFaixa: faixa.length,
+    distEsq: resEsq.distancia,
+    distDir: resDir.distancia,
+  };
 }
 
 async function demonstrarPassosDc(pontos) {
-  const { cutX, delta, qtdEsq, qtdDir } = prepararDadosDcVisual(pontos);
+  const dados = dadosPrimeiroNivelDc(pontos);
+  const { cutX, delta, qtdEsq, qtdDir, qtdFaixa, distEsq, distDir } = dados;
+  const deltaTxt =
+    delta === Infinity ? "—" : `${delta.toFixed(2)} px`;
 
   estado.regiaoEsq = false;
   estado.regiaoDir = false;
@@ -653,8 +693,8 @@ async function demonstrarPassosDc(pontos) {
   estado.dcPasso = "corte";
   definirStatus(
     "D&C — Dividir",
-    "Passo 1: cortar o plano",
-    "Ordena por x e traça a linha azul. À esquerda e à direita serão resolvidos problemas menores.",
+    "Passo 1: cortar o plano (nível raiz)",
+    "Ordena por x e divide em dois subproblemas. Cada metade será resolvida recursivamente.",
     "dc"
   );
   definirProgresso(70);
@@ -664,10 +704,14 @@ async function demonstrarPassosDc(pontos) {
 
   estado.dcPasso = "esq";
   estado.regiaoEsq = true;
+  const txtEsq =
+    distEsq === Infinity
+      ? "subproblema pequeno"
+      : `menor par recursivo: ${distEsq.toFixed(2)} px`;
   definirStatus(
     "D&C — Conquistar",
-    "Passo 2: metade esquerda",
-    `${qtdEsq.toLocaleString("pt-BR")} aeronaves. Encontra o menor par só entre os pontos azuis.`,
+    "Passo 2: metade esquerda (recursivo)",
+    `${qtdEsq.toLocaleString("pt-BR")} pontos · ${txtEsq}.`,
     "dc"
   );
   definirProgresso(76);
@@ -675,10 +719,14 @@ async function demonstrarPassosDc(pontos) {
 
   estado.dcPasso = "dir";
   estado.regiaoDir = true;
+  const txtDir =
+    distDir === Infinity
+      ? "subproblema pequeno"
+      : `menor par recursivo: ${distDir.toFixed(2)} px`;
   definirStatus(
     "D&C — Conquistar",
-    "Passo 3: metade direita",
-    `${qtdDir.toLocaleString("pt-BR")} aeronaves. O mesmo na região laranja, em paralelo conceitual.`,
+    "Passo 3: metade direita (recursivo)",
+    `${qtdDir.toLocaleString("pt-BR")} pontos · ${txtDir}.`,
     "dc"
   );
   definirProgresso(82);
@@ -686,17 +734,17 @@ async function demonstrarPassosDc(pontos) {
 
   estado.dcPasso = "faixa";
   estado.mostrarFaixa = true;
-  estado.faixaDelta = delta;
+  estado.faixaDelta = delta === Infinity ? null : delta;
   definirStatus(
     "D&C — Combinar",
-    "Passo 4: faixa central",
-    `Pontos roxos podem estar perto da fronteira. Só essa faixa (2δ ≈ ${(delta * 2).toFixed(0)} px) é revisada para não perder o par global.`,
+    "Passo 4: faixa central (strip)",
+    `δ = ${deltaTxt} (menor distância das metades). ${qtdFaixa.toLocaleString("pt-BR")} pontos na faixa · cada um compara com no máximo 7 vizinhos em y.`,
     "dc"
   );
   definirProgresso(88);
   await sleep(1600);
 
-  return cutX;
+  return { cutX, delta, qtdFaixa };
 }
 
 async function animarSpawnRapido() {
@@ -757,16 +805,28 @@ function menorPar(a, b) {
   return a.distancia <= b.distancia ? a : b;
 }
 
+/** Strip merge — no máximo 7 vizinhos seguintes em y (O(n log n) garantido). */
+const MAX_VIZINHOS_FAIXA = 7;
+
 function faixaCentral(pontosOrdenadosY, delta, melhorAtual) {
+  if (delta === Infinity) return melhorAtual;
+
   let melhor = melhorAtual;
-  for (let i = 0; i < pontosOrdenadosY.length; i++) {
+  const n = pontosOrdenadosY.length;
+
+  for (let i = 0; i < n; i++) {
     const pi = posAlgoritmo(pontosOrdenadosY[i]);
-    for (let j = i + 1; j < pontosOrdenadosY.length; j++) {
+    const jMax = Math.min(i + MAX_VIZINHOS_FAIXA + 1, n);
+    for (let j = i + 1; j < jMax; j++) {
       const pj = posAlgoritmo(pontosOrdenadosY[j]);
       if (pj.y - pi.y >= delta) break;
-      const d = Math.hypot(pi.x - pj.x, pi.y - pj.y);
-      if (d < melhor.distancia) {
-        melhor = { distancia: d, p1: pontosOrdenadosY[i], p2: pontosOrdenadosY[j] };
+      const dSq = distanciaQuadradoCoords(pi.x, pi.y, pj.x, pj.y);
+      if (dSq < melhor.distancia * melhor.distancia) {
+        melhor = {
+          distancia: Math.sqrt(dSq),
+          p1: pontosOrdenadosY[i],
+          p2: pontosOrdenadosY[j],
+        };
       }
     }
   }
@@ -778,24 +838,22 @@ function dividirConquistarRec(pontosX, pontosY) {
   if (n <= 3) return forcaBruta(pontosX);
 
   const meio = Math.floor(n / 2);
-  const pMedio = pontosX[meio];
-  const pm = posAlgoritmo(pMedio);
+  const pm = posAlgoritmo(pontosX[meio]);
   const esquerdaX = pontosX.slice(0, meio);
   const direitaX = pontosX.slice(meio);
-  const setEsq = new Set(esquerdaX);
-  const esqY = [];
-  const dirY = [];
-  for (const p of pontosY) {
-    if (setEsq.has(p)) esqY.push(p);
-    else dirY.push(p);
-  }
+
+  const idsEsq = new Set();
+  for (let i = 0; i < meio; i++) idsEsq.add(esquerdaX[i].id);
+  const { esqY, dirY } = particionarListasY(pontosY, idsEsq);
 
   let melhor = menorPar(
     dividirConquistarRec(esquerdaX, esqY),
     dividirConquistarRec(direitaX, dirY)
   );
   const delta = melhor.distancia;
-  const faixa = pontosY.filter((p) => Math.abs(posAlgoritmo(p).x - pm.x) < delta);
+  const faixa = pontosY.filter(
+    (p) => Math.abs(posAlgoritmo(p).x - pm.x) < delta
+  );
   melhor = faixaCentral(faixa, delta, melhor);
   return melhor;
 }
@@ -881,18 +939,19 @@ async function rodarAnalise() {
   definirProgresso(58);
   await sleep(n > 8000 ? 900 : 1600);
 
-  const linhaCorteX = await demonstrarPassosDc(estado.pontos);
+  const dadosDcVis = await demonstrarPassosDc(estado.pontos);
 
   const inicioDc = performance.now();
   const resDc = dividirConquistar(estado.pontos);
   const tempoDc = performance.now() - inicioDc;
 
   estado.dcPasso = "resultado";
-  estado.linhaCorteX = resDc.linhaCorteX || linhaCorteX;
+  estado.linhaCorteX = resDc.linhaCorteX || dadosDcVis.cutX;
   estado.regiaoEsq = true;
   estado.regiaoDir = true;
   estado.mostrarFaixa = true;
-  estado.faixaDelta = prepararDadosDcVisual(estado.pontos).delta;
+  estado.faixaDelta =
+    dadosDcVis.delta === Infinity ? null : dadosDcVis.delta;
   estado.parDestaque = [resDc.p1, resDc.p2];
   elDistMin.textContent = resDc.distancia.toFixed(2);
   elTempoDc.textContent = tempoDc.toFixed(2);
