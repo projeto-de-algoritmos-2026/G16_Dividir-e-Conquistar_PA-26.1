@@ -41,13 +41,13 @@ A aplicação é **100% client-side**: JavaScript puro, **HTML5 Canvas** para o 
 **Pré-requisitos**
 
 - Navegador atualizado (Chrome, Firefox, Edge ou equivalente).
-- **Node.js** (opcional): apenas se quiser servir os arquivos por HTTP — útil em apresentações ou para evitar diferenças entre navegadores ao abrir arquivos locais.
+- **Node.js** (opcional): apenas se quiser servir os arquivos por HTTP.
 
 **Comandos**
 
 Como o projeto não usa módulos ES, a forma mais simples é abrir o `index.html` diretamente no navegador (duplo clique).
 
-**Alternativa com servidor estático (recomendado na apresentação):**
+**Alternativa com servidor estático:**
 
 ```bash
 cd G16_Dividir-e-Conquistar_PA-26.1
