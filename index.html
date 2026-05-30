@@ -17,10 +17,22 @@
             <p class="subtitle">Par de Pontos Mais Próximos — Dividir e Conquistar</p>
           </div>
         </div>
-        <p class="header-hint">Cada ponto verde é uma aeronave. O sistema encontra o par mais próximo e mede o tempo de cada algoritmo.</p>
+        <p class="header-hint">
+          Aeronaves voam pelo radar. Ao clicar em Análise, o espaço congela e o sistema encontra o <strong>par mais próximo</strong> — eles entram em <strong>alerta</strong> por proximidade.
+        </p>
       </header>
-      <div class="canvas-wrap">
+
+      <div class="canvas-wrap" id="canvas-wrap">
         <canvas id="radar" aria-label="Plano cartesiano do radar aéreo"></canvas>
+
+        <div class="zoom-toolbar" aria-label="Controles de zoom">
+          <button type="button" id="btn-zoom-in" class="zoom-btn" title="Aumentar zoom">+</button>
+          <button type="button" id="btn-zoom-out" class="zoom-btn" title="Diminuir zoom">−</button>
+          <button type="button" id="btn-zoom-reset" class="zoom-btn zoom-btn-wide" title="Resetar visão">Reset</button>
+          <span class="zoom-label" id="zoom-valor">100%</span>
+        </div>
+        <p class="zoom-hint">Scroll = zoom · Arrastar = mover · Após análise: parado até Reset</p>
+
         <div class="canvas-overlay" aria-live="polite">
           <div class="overlay-status" id="overlay-status">
             <span class="status-badge" id="status-badge">Pronto</span>
@@ -30,16 +42,19 @@
           <div class="overlay-legend">
             <span><i class="lg lg-verde"></i> Aeronave</span>
             <span><i class="lg lg-corte"></i> Divisão (D&amp;C)</span>
-            <span><i class="lg lg-perigo"></i> Par em risco</span>
+            <span><i class="lg lg-faixa"></i> Faixa central</span>
+            <span><i class="lg lg-perigo"></i> Alerta — par mais próximo</span>
             <span><i class="lg lg-varredura"></i> Varredura</span>
           </div>
         </div>
+
         <div class="progress-wrap" id="progress-wrap" hidden>
           <div class="progress-bar" id="progress-bar"></div>
           <span class="progress-label" id="progress-label">0%</span>
         </div>
       </div>
     </main>
+
     <aside class="panel">
       <section class="panel-block">
         <h2>Controles</h2>
@@ -51,35 +66,90 @@
           <input type="range" id="qtd-aviões" min="100" max="50000" value="100" step="100">
           <span class="hint">100 para demonstração · 30.000+ para stress test</span>
         </label>
+
         <div class="btn-row">
-          <button type="button" id="btn-regenerar" class="btn-secondary">Nova distribuição</button>
+          <button type="button" id="btn-regenerar" class="btn-secondary">Reset — nova distribuição</button>
           <button type="button" id="btn-analise" class="btn-primary">Rodar Análise de Risco</button>
         </div>
       </section>
+
       <section class="panel-block fluxo" id="fluxo-passos">
         <h2>O que está acontecendo</h2>
         <ol class="passos">
-          <li class="passo" data-passo="idle"><span class="passo-num">1</span><div><strong>Distribuição</strong><p>Aeronaves posicionadas aleatoriamente no plano cartesiano (pixels).</p></div></li>
-          <li class="passo" data-passo="bruta"><span class="passo-num">2</span><div><strong>Força Bruta <em>O(n²)</em></strong><p>Compara <strong>cada par</strong> de pontos. Varredura visual no radar.</p></div></li>
-          <li class="passo" data-passo="dc"><span class="passo-num">3</span><div><strong>Dividir e Conquistar <em>O(n log n)</em></strong><p>Divide o plano pela linha azul, resolve metades e verifica a faixa central.</p></div></li>
-          <li class="passo" data-passo="done"><span class="passo-num">4</span><div><strong>Resultado</strong><p>Mesma distância mínima — tempos comparados no painel abaixo.</p></div></li>
+          <li class="passo" data-passo="idle">
+            <span class="passo-num">1</span>
+            <div>
+              <strong>Tráfego aéreo</strong>
+              <p>Aeronaves voando; algumas entram e outras saem do radar.</p>
+            </div>
+          </li>
+          <li class="passo" data-passo="bruta">
+            <span class="passo-num">2</span>
+            <div>
+              <strong>Força Bruta <em>O(n²)</em></strong>
+              <p>Compara <strong>cada par</strong> de pontos. Varredura visual no radar.</p>
+            </div>
+          </li>
+          <li class="passo" data-passo="dc">
+            <span class="passo-num">3</span>
+            <div>
+              <strong>Dividir e Conquistar <em>O(n log n)</em></strong>
+              <p>1) Corta · 2) Resolve esquerda · 3) Resolve direita · 4) Faixa roxa na fronteira.</p>
+            </div>
+          </li>
+          <li class="passo" data-passo="done">
+            <span class="passo-num">4</span>
+            <div>
+              <strong>Alerta</strong>
+              <p>Par mais próximo destacado em vermelho — em alerta por estarem muito próximos.</p>
+            </div>
+          </li>
         </ol>
       </section>
+
       <section class="panel-block dashboard" aria-live="polite">
         <h2>Resultados</h2>
         <dl class="metricas">
-          <div class="metrica metrica-dist"><dt>Distância mínima (par em risco)</dt><dd id="dist-min">—</dd><dd class="unidade">px</dd></div>
-          <div class="metrica metrica-bruta"><dt>Força Bruta <span class="complexidade">O(n²)</span></dt><dd id="tempo-bruta">—</dd><dd class="unidade">ms</dd><dd class="metrica-extra" id="comparacao-bruta"></dd></div>
-          <div class="metrica metrica-dc"><dt>Dividir e Conquistar <span class="complexidade">O(n log n)</span></dt><dd id="tempo-dc">—</dd><dd class="unidade">ms</dd><dd class="metrica-extra" id="comparacao-dc"></dd></div>
+          <div class="metrica metrica-dist">
+            <dt>Distância mínima (alerta de proximidade)</dt>
+            <dd id="dist-min">—</dd>
+            <dd class="unidade">px</dd>
+          </div>
+          <div class="metrica metrica-bruta">
+            <dt>Força Bruta <span class="complexidade">O(n²)</span></dt>
+            <dd id="tempo-bruta">—</dd>
+            <dd class="unidade">ms</dd>
+            <dd class="metrica-extra" id="comparacao-bruta"></dd>
+          </div>
+          <div class="metrica metrica-dc">
+            <dt>Dividir e Conquistar <span class="complexidade">O(n log n)</span></dt>
+            <dd id="tempo-dc">—</dd>
+            <dd class="unidade">ms</dd>
+            <dd class="metrica-extra" id="comparacao-dc"></dd>
+          </div>
         </dl>
-        <p class="ratio-box" id="ratio-box" hidden>O D&amp;C foi <strong id="ratio-valor">—</strong> mais rápido que a força bruta.</p>
+        <p class="ratio-box" id="ratio-box" hidden>
+          O D&amp;C foi <strong id="ratio-valor">—</strong> mais rápido que a força bruta.
+        </p>
+      </section>
+
+      <section class="panel-block explicacao">
+        <h2>O que é o alerta</h2>
+        <p class="explicacao-texto">
+          O algoritmo calcula apenas o <strong>par de pontos mais próximos</strong> no instante congelado do radar.
+          As duas aeronaves desse par ficam em <strong>alerta</strong> porque estão mais perto que qualquer outro par — não há previsão de colisão, só medição de proximidade.
+        </p>
       </section>
       <section class="panel-block explicacao">
         <h2>Como funciona o D&amp;C</h2>
-        <p class="explicacao-texto">Ordena os pontos por <code>x</code>, corta ao meio (linha azul), encontra o menor par em cada metade e só revisita pontos numa <strong>faixa estreita</strong> ao redor do corte.</p>
+        <p class="explicacao-texto">
+          Ordena por <code>x</code>, corta ao meio (linha azul), resolve cada metade e revisita só a
+          <strong>faixa estreita</strong> central — sem comparar todos os pares.
+        </p>
       </section>
     </aside>
   </div>
+
   <script src="main.js"></script>
 </body>
 </html>
