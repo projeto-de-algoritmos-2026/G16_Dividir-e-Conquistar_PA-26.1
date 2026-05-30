@@ -1,8 +1,3 @@
-/**
- * Radar ATS — Par de Pontos Mais Próximos
- * Proximidade instantânea + trajetórias ilustrativas + zoom
- */
-
 const CONFIG = {
   MARGEM: 24,
   RAIO_PONTO: 2.5,
@@ -640,7 +635,6 @@ function particionarListasY(pontosY, idsEsquerda) {
   return { esqY, dirY };
 }
 
-/** Dados do 1º merge — mesma lógica de dividirConquistarRec no nível raiz. */
 function dadosPrimeiroNivelDc(pontos) {
   const pontosX = [...pontos].sort(
     (a, b) => posAlgoritmo(a).x - posAlgoritmo(b).x
@@ -805,7 +799,6 @@ function menorPar(a, b) {
   return a.distancia <= b.distancia ? a : b;
 }
 
-/** Strip merge — no máximo 7 vizinhos seguintes em y (O(n log n) garantido). */
 const MAX_VIZINHOS_FAIXA = 7;
 
 function faixaCentral(pontosOrdenadosY, delta, melhorAtual) {
